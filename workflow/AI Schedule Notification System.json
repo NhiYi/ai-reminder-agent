@@ -1,0 +1,218 @@
+{
+  "name": "AI Schedule Notification System",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        0,
+        0
+      ],
+      "id": "4ec84ca8-312e-4352-bd58-57bf40d8750e",
+      "name": "Telegram Trigger",
+      "webhookId": "c36969d3-308c-431c-8072-058a288ca170",
+      "credentials": {
+        "telegramApi": {
+          "id": "LleENHI3fNpKeX7Q",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Ngày hiện tại: {{ $now.setZone('Asia/Ho_Chi_Minh').toFormat('dd/MM/yyyy') }}\nMúi giờ: Asia/Ho_Chi_Minh (GMT+7)\n\nTin nhắn người dùng:\n{{ $json.message.text }}",
+        "options": {
+          "systemMessage": "Ngày hiện tại được cung cấp bởi hệ thống.\nKhi người dùng nói \"hôm nay\", \"ngày mai\", \"ngày kia\", phải tính dựa trên ngày hiện tại thực tế, không được tự suy đoán một năm cũ.\n\nNếu người dùng không cung cấp năm, sử dụng năm của ngày hiện tại.\nMúi giờ: Asia/Ho_Chi_Minh (GMT+7).\nQUY TẮC NGÀY THÁNG RẤT QUAN TRỌNG:\n\n- Luôn sử dụng \"Ngày hiện tại\" được cung cấp trong Prompt làm mốc tính ngày.\n- \"Hôm nay\" = ngày hiện tại.\n- \"Ngày mai\" = ngày hiện tại + 1 ngày.\n- \"Ngày kia\" = ngày hiện tại + 2 ngày.\n- Nếu người dùng không nói năm, sử dụng năm tương ứng với ngày được tính.\n- Tuyệt đối không tự sử dụng năm 2024 hoặc một ngày mặc định khác.\n- Múi giờ là Asia/Ho_Chi_Minh (GMT+7)."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        272,
+        0
+      ],
+      "id": "8afa004b-5c4e-414e-aa50-1fdcdf973e61",
+      "name": "Agent 1 - Schedule Parser"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        128,
+        144
+      ],
+      "id": "7cbb204f-bd4a-4f26-8c41-c4999375480d",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "zX4dOlHQZWZBdv1d",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.output }}",
+        "options": {
+          "systemMessage": "Bạn là Reminder Agent.\n\nBạn nhận thông tin lịch đã được Schedule Agent phân tích.\n\nNhiệm vụ:\n1. Kiểm tra thông tin lịch có đủ ngày, giờ, nội dung và thời gian nhắc.\n2. Tạo một thông báo lịch ngắn gọn bằng tiếng Việt.\n3. Thông báo phải có ngày, giờ và nội dung lịch.\n4. Không tự ý thêm thông tin không có trong dữ liệu.\n5. Giọng văn thân thiện, dễ đọc.\n\nMẫu:\n\n🔔 NHẮC LỊCH\n\n📅 Ngày: ...\n⏰ Thời gian: ...\n📝 Nội dung: ...\n\nCòn ... phút nữa đến giờ."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        592,
+        32
+      ],
+      "id": "da0a1e88-32b3-4d3c-b57d-5e05b8e46b9c",
+      "name": "Agent 2 - Reminder Assistant"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        464,
+        192
+      ],
+      "id": "36afb827-d3ac-4ee8-9ad6-261e4c709b59",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "zX4dOlHQZWZBdv1d",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        80
+      ],
+      "id": "571ee8b8-47c8-48fc-8adc-8a28e358029f",
+      "name": "Wait",
+      "webhookId": "143adc53-a63f-4510-b0c5-3f466fb62d5d"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1184,
+        80
+      ],
+      "id": "72aa8fe6-4bdf-4c66-9153-09896e408b31",
+      "name": "Send a text message",
+      "webhookId": "a533713d-96bf-45e4-a2a1-0023441ab05a",
+      "credentials": {
+        "telegramApi": {
+          "id": "LleENHI3fNpKeX7Q",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Agent 1 - Schedule Parser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agent 1 - Schedule Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent 1 - Schedule Parser": {
+      "main": [
+        [
+          {
+            "node": "Agent 2 - Reminder Assistant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agent 2 - Reminder Assistant",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent 2 - Reminder Assistant": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "86130ebc-700a-4996-ad52-7dea38cd9cb7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9e9628073a622080770e288e7b89a378c8cb46c1359319c22fa544c05c463ada"
+  },
+  "nodeGroups": [],
+  "id": "Ge6O6172AWVfObkC",
+  "tags": []
+}
